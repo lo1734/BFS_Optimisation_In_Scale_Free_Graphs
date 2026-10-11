@@ -14,6 +14,7 @@ add_library(graph_lib STATIC
     src/graph/rmat_generator.cpp
     src/bfs/serial_bfs.cpp
     src/bfs/naive_bfs.cpp
+    src/bfs/contention_reduced_bfs.cpp
 )
 target_link_libraries(graph_lib PUBLIC OpenMP::OpenMP_CXX)
 

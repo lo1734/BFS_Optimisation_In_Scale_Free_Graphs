@@ -29,6 +29,12 @@ void test_small_graph() {
     for (int t : {1, 2, 4}) {
         auto naive_res = bfs::run_naive_parallel_bfs(g, 0, t, true);
         assert(bfs::validate_bfs(g, serial_res, naive_res));
+
+        auto cr_res = bfs::run_contention_reduced_bfs(g, 0, t, true);
+        assert(bfs::validate_bfs(g, serial_res, cr_res));
+
+        auto bmp_res = bfs::run_bitmap_bfs(g, 0, t, true);
+        assert(bfs::validate_bfs(g, serial_res, bmp_res));
     }
 
     std::cout << "PASSED\n";
@@ -56,6 +62,12 @@ void test_disconnected_components() {
     for (int t : {1, 2, 4}) {
         auto naive_res = bfs::run_naive_parallel_bfs(g, 0, t, false);
         assert(bfs::validate_bfs(g, serial_res, naive_res));
+
+        auto cr_res = bfs::run_contention_reduced_bfs(g, 0, t, false);
+        assert(bfs::validate_bfs(g, serial_res, cr_res));
+
+        auto bmp_res = bfs::run_bitmap_bfs(g, 0, t, false);
+        assert(bfs::validate_bfs(g, serial_res, bmp_res));
     }
 
     std::cout << "PASSED\n";
@@ -78,8 +90,13 @@ void test_rmat_multi_roots() {
 
         for (int t : {1, 2, 4, 8}) {
             auto naive_res = bfs::run_naive_parallel_bfs(g, root, t, true);
-            bool ok = bfs::validate_bfs(g, serial_res, naive_res);
-            assert(ok);
+            assert(bfs::validate_bfs(g, serial_res, naive_res));
+
+            auto cr_res = bfs::run_contention_reduced_bfs(g, root, t, true);
+            assert(bfs::validate_bfs(g, serial_res, cr_res));
+
+            auto bmp_res = bfs::run_bitmap_bfs(g, root, t, true);
+            assert(bfs::validate_bfs(g, serial_res, bmp_res));
         }
     }
 
@@ -96,6 +113,12 @@ void test_barabasi_albert_validation() {
         for (int t : {1, 2, 4}) {
             auto naive_res = bfs::run_naive_parallel_bfs(g, root, t, false);
             assert(bfs::validate_bfs(g, serial_res, naive_res));
+
+            auto cr_res = bfs::run_contention_reduced_bfs(g, root, t, false);
+            assert(bfs::validate_bfs(g, serial_res, cr_res));
+
+            auto bmp_res = bfs::run_bitmap_bfs(g, root, t, false);
+            assert(bfs::validate_bfs(g, serial_res, bmp_res));
         }
     }
 

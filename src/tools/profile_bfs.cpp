@@ -52,6 +52,7 @@ void run_profiled_bfs(
     const graph::CSRGraph& g,
     uint32_t root,
     int num_threads,
+    bool contention_reduced,
     std::vector<LevelMetrics>& level_stats,
     std::vector<ThreadMetrics>& total_thread_stats,
     std::vector<HubContention>& hub_stats,
@@ -75,6 +76,17 @@ void run_profiled_bfs(
     std::atomic<uint64_t> next_frontier_tail{0};
 
     total_thread_stats.assign(num_threads, ThreadMetrics{});
+
+    // Thread-local buffers for contention-reduced mode
+    struct alignas(CACHE_LINE_SIZE) LocalBuf {
+        std::vector<uint32_t> items;
+    };
+    std::vector<LocalBuf> tls_frontier_bufs(num_threads);
+    if (contention_reduced) {
+        for (int t = 0; t < num_threads; ++t) {
+            tls_frontier_bufs[t].items.reserve(n / num_threads + 128);
+        }
+    }
 
     // Identify top-10 hub vertices for contention tracking
     std::vector<std::pair<uint64_t, uint32_t>> degree_pairs;
@@ -108,6 +120,11 @@ void run_profiled_bfs(
 
     while (frontier_size > 0) {
         next_frontier_tail.store(0, std::memory_order_relaxed);
+        if (contention_reduced) {
+            for (int t = 0; t < num_threads; ++t) {
+                tls_frontier_bufs[t].items.clear();
+            }
+        }
 
         std::vector<ThreadMetrics> lvl_thread_metrics(num_threads);
 
@@ -131,25 +148,49 @@ void run_profiled_bfs(
 
                 for (uint64_t e = start_e; e < end_e; ++e) {
                     uint32_t v = g.col_idx[e];
-
-                    me.cas_attempts++;
                     uint32_t hub_idx = hub_lookup[v];
-                    if (hub_idx != UINT32_MAX) {
-                        thread_hubs[tid].attempts[hub_idx]++;
-                    }
 
-                    // Naive atomic CAS on dist[v]
-                    int32_t expected = -1;
-                    if (__atomic_compare_exchange_n(&dist[v], &expected, current_level + 1,
-                                                    false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
-                        me.cas_successes++;
-                        me.queue_pushes++;
-                        uint64_t idx = next_frontier_tail.fetch_add(1, std::memory_order_seq_cst);
-                        next_frontier[idx] = v;
-                    } else {
-                        me.cas_failures++;
+                    if (contention_reduced) {
+                        // 1. Test-before-CAS: Plain relaxed read keeps line in Shared state
+                        if (dist[v] != -1) continue;
+
+                        me.cas_attempts++;
                         if (hub_idx != UINT32_MAX) {
-                            thread_hubs[tid].failures[hub_idx]++;
+                            thread_hubs[tid].attempts[hub_idx]++;
+                        }
+
+                        // 2. Atomic CAS with relaxed memory order
+                        int32_t expected = -1;
+                        if (__atomic_compare_exchange_n(&dist[v], &expected, current_level + 1,
+                                                        false, __ATOMIC_RELAXED, __ATOMIC_RELAXED)) {
+                            me.cas_successes++;
+                            // 3. Thread-local push: 0 queue tail atomics
+                            tls_frontier_bufs[tid].items.push_back(v);
+                        } else {
+                            me.cas_failures++;
+                            if (hub_idx != UINT32_MAX) {
+                                thread_hubs[tid].failures[hub_idx]++;
+                            }
+                        }
+                    } else {
+                        // Naive atomic CAS on dist[v]
+                        me.cas_attempts++;
+                        if (hub_idx != UINT32_MAX) {
+                            thread_hubs[tid].attempts[hub_idx]++;
+                        }
+
+                        int32_t expected = -1;
+                        if (__atomic_compare_exchange_n(&dist[v], &expected, current_level + 1,
+                                                        false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
+                            me.cas_successes++;
+                            me.queue_pushes++;
+                            uint64_t idx = next_frontier_tail.fetch_add(1, std::memory_order_seq_cst);
+                            next_frontier[idx] = v;
+                        } else {
+                            me.cas_failures++;
+                            if (hub_idx != UINT32_MAX) {
+                                thread_hubs[tid].failures[hub_idx]++;
+                            }
                         }
                     }
                 }
@@ -210,7 +251,23 @@ void run_profiled_bfs(
 
         level_stats.push_back(lm);
 
-        frontier_size = next_frontier_tail.load(std::memory_order_relaxed);
+        if (contention_reduced) {
+            std::vector<size_t> offsets(num_threads + 1, 0);
+            for (int t = 0; t < num_threads; ++t) {
+                offsets[t + 1] = offsets[t] + tls_frontier_bufs[t].items.size();
+            }
+            frontier_size = offsets[num_threads];
+            #pragma omp parallel for num_threads(num_threads) schedule(static)
+            for (int t = 0; t < num_threads; ++t) {
+                if (!tls_frontier_bufs[t].items.empty()) {
+                    std::memcpy(&next_frontier[offsets[t]], tls_frontier_bufs[t].items.data(),
+                                tls_frontier_bufs[t].items.size() * sizeof(uint32_t));
+                }
+            }
+        } else {
+            frontier_size = next_frontier_tail.load(std::memory_order_relaxed);
+        }
+
         current_level++;
         std::swap(frontier, next_frontier);
     }
@@ -328,6 +385,7 @@ int main(int argc, char* argv[]) {
     std::string csv_levels = "";
     std::string csv_threads = "";
     uint32_t custom_root = UINT32_MAX;
+    bool contention_reduced = false;
 
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--input") == 0 && i + 1 < argc) {
@@ -342,6 +400,11 @@ int main(int argc, char* argv[]) {
             csv_levels = argv[++i];
         } else if (std::strcmp(argv[i], "--csv-threads") == 0 && i + 1 < argc) {
             csv_threads = argv[++i];
+        } else if (std::strcmp(argv[i], "--mode") == 0 && i + 1 < argc) {
+            std::string m = argv[++i];
+            if (m == "contention-reduced" || m == "cr") {
+                contention_reduced = true;
+            }
         }
     }
 
@@ -365,14 +428,15 @@ int main(int argc, char* argv[]) {
         root = roots[0];
     }
 
-    std::cout << "Profiling Naive OpenMP BFS with " << num_threads << " threads from root: " << root << " ...\n";
+    std::string mode_str = contention_reduced ? "Contention-Reduced OpenMP BFS (Phase 4)" : "Naive OpenMP BFS";
+    std::cout << "Profiling " << mode_str << " with " << num_threads << " threads from root: " << root << " ...\n";
 
     std::vector<LevelMetrics> level_stats;
     std::vector<ThreadMetrics> thread_stats;
     std::vector<HubContention> hub_stats;
     double total_time = 0.0;
 
-    run_profiled_bfs(g, root, num_threads, level_stats, thread_stats, hub_stats, total_time);
+    run_profiled_bfs(g, root, num_threads, contention_reduced, level_stats, thread_stats, hub_stats, total_time);
 
     // Compute totals
     uint64_t total_edges = 0;

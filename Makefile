@@ -29,8 +29,8 @@ BIN_DIR = bin
 COMMON_SRCS = $(SRC_DIR)/graph/graph.cpp $(SRC_DIR)/graph/rmat_generator.cpp
 COMMON_OBJS = $(OBJ_DIR)/graph/graph.o $(OBJ_DIR)/graph/rmat_generator.o
 
-BFS_SRCS = $(SRC_DIR)/bfs/serial_bfs.cpp $(SRC_DIR)/bfs/naive_bfs.cpp
-BFS_OBJS = $(COMMON_OBJS) $(OBJ_DIR)/bfs/serial_bfs.o $(OBJ_DIR)/bfs/naive_bfs.o
+BFS_SRCS = $(SRC_DIR)/bfs/serial_bfs.cpp $(SRC_DIR)/bfs/naive_bfs.cpp $(SRC_DIR)/bfs/contention_reduced_bfs.cpp
+BFS_OBJS = $(COMMON_OBJS) $(OBJ_DIR)/bfs/serial_bfs.o $(OBJ_DIR)/bfs/naive_bfs.o $(OBJ_DIR)/bfs/contention_reduced_bfs.o
 
 TARGETS = $(BIN_DIR)/atomic_microbench \
           $(BIN_DIR)/generate_graph \
@@ -57,6 +57,9 @@ $(OBJ_DIR)/bfs/serial_bfs.o: $(SRC_DIR)/bfs/serial_bfs.cpp $(INC_DIR)/bfs.hpp $(
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/bfs/naive_bfs.o: $(SRC_DIR)/bfs/naive_bfs.cpp $(INC_DIR)/bfs.hpp $(INC_DIR)/graph.hpp $(INC_DIR)/utils.hpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/bfs/contention_reduced_bfs.o: $(SRC_DIR)/bfs/contention_reduced_bfs.cpp $(INC_DIR)/bfs.hpp $(INC_DIR)/graph.hpp $(INC_DIR)/utils.hpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(BIN_DIR)/atomic_microbench: $(SRC_DIR)/benchmarks/atomic_microbench.cpp $(INC_DIR)/atomic_bench.hpp $(INC_DIR)/utils.hpp

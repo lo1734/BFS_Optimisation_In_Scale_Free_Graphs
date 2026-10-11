@@ -102,13 +102,19 @@ BFSResult run_serial_bfs(const graph::CSRGraph& g, uint32_t root, bool track_par
 // 2. Naive OpenMP Level-Synchronous Parallel BFS (with atomic contention & false sharing)
 BFSResult run_naive_parallel_bfs(const graph::CSRGraph& g, uint32_t root, int num_threads, bool track_parents = false);
 
-// 3. Validation: compare test result against serial oracle and check Graph500 invariants
+// 3. Contention-Reduced OpenMP Parallel BFS (Phase 4: Test-Before-CAS, TLS buffers, batched merge, relaxed atomics)
+BFSResult run_contention_reduced_bfs(const graph::CSRGraph& g, uint32_t root, int num_threads, bool track_parents = false);
+
+// 4. Visited Bitmap OpenMP Parallel BFS (Phase 4: 1-bit visited bitmap, TLS buffers, batched merge)
+BFSResult run_bitmap_bfs(const graph::CSRGraph& g, uint32_t root, int num_threads, bool track_parents = false);
+
+// 5. Validation: compare test result against serial oracle and check Graph500 invariants
 bool validate_bfs(const graph::CSRGraph& g, const BFSResult& serial_res, const BFSResult& test_res);
 
-// 4. Helper: select random non-isolated root vertices in the giant component
+// 6. Helper: select random non-isolated root vertices in the giant component
 std::vector<uint32_t> select_random_roots(const graph::CSRGraph& g, size_t count, uint64_t seed = 42);
 
-// 5. Helper: compute harmonic mean TEPS
+// 7. Helper: compute harmonic mean TEPS
 double compute_harmonic_mean_teps(const std::vector<double>& teps_list);
 
 } // namespace bfs
