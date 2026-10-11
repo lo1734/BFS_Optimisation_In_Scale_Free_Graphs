@@ -35,3 +35,7 @@ target_link_libraries(test_bfs PRIVATE graph_lib OpenMP::OpenMP_CXX)
 add_executable(benchmark_bfs src/tools/benchmark_bfs.cpp)
 target_link_libraries(benchmark_bfs PRIVATE graph_lib OpenMP::OpenMP_CXX)
 
+add_executable(profile_bfs src/tools/profile_bfs.cpp)
+target_link_libraries(profile_bfs PRIVATE graph_lib OpenMP::OpenMP_CXX)
+
+

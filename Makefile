@@ -37,9 +37,10 @@ TARGETS = $(BIN_DIR)/atomic_microbench \
           $(BIN_DIR)/inspect_graph \
           $(BIN_DIR)/test_graph \
           $(BIN_DIR)/test_bfs \
-          $(BIN_DIR)/benchmark_bfs
+          $(BIN_DIR)/benchmark_bfs \
+          $(BIN_DIR)/profile_bfs
 
-.PHONY: all clean test microbench tools benchmark
+.PHONY: all clean test microbench tools benchmark profile
 
 all: directories $(TARGETS)
 
@@ -76,6 +77,9 @@ $(BIN_DIR)/test_bfs: tests/test_bfs.cpp $(BFS_OBJS)
 $(BIN_DIR)/benchmark_bfs: $(SRC_DIR)/tools/benchmark_bfs.cpp $(BFS_OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
+$(BIN_DIR)/profile_bfs: $(SRC_DIR)/tools/profile_bfs.cpp $(BFS_OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+
 microbench: $(BIN_DIR)/atomic_microbench
 	./$(BIN_DIR)/atomic_microbench
 
@@ -86,6 +90,8 @@ test: $(BIN_DIR)/test_graph $(BIN_DIR)/test_bfs
 	./$(BIN_DIR)/test_bfs
 
 benchmark: $(BIN_DIR)/benchmark_bfs
+
+profile: $(BIN_DIR)/profile_bfs
 
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
