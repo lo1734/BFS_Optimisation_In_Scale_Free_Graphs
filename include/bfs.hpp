@@ -108,7 +108,13 @@ BFSResult run_contention_reduced_bfs(const graph::CSRGraph& g, uint32_t root, in
 // 4. Visited Bitmap OpenMP Parallel BFS (Phase 4: 1-bit visited bitmap, TLS buffers, batched merge)
 BFSResult run_bitmap_bfs(const graph::CSRGraph& g, uint32_t root, int num_threads, bool track_parents = false);
 
-// 5. Validation: compare test result against serial oracle and check Graph500 invariants
+// 5. Cache-Line Padded & Aligned OpenMP BFS (Phase 5: 128-byte padding, aligned buffers & chunking)
+BFSResult run_padded_bfs(const graph::CSRGraph& g, uint32_t root, int num_threads, bool track_parents = false);
+
+// 6. Unpadded OpenMP BFS (Phase 5 Ablation: packed thread structs demonstrating false-sharing penalty)
+BFSResult run_unpadded_bfs(const graph::CSRGraph& g, uint32_t root, int num_threads, bool track_parents = false);
+
+// 7. Validation: compare test result against serial oracle and check Graph500 invariants
 bool validate_bfs(const graph::CSRGraph& g, const BFSResult& serial_res, const BFSResult& test_res);
 
 // 6. Helper: select random non-isolated root vertices in the giant component

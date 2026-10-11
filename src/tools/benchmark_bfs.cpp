@@ -236,6 +236,68 @@ int main(int argc, char* argv[]) {
                   << h_teps << ", Speedup: " << std::fixed << std::setprecision(2) << speedup << "x)\n";
     }
 
+    // 5. Run Unpadded OpenMP BFS (Phase 5 False-Sharing Ablation)
+    for (int t : thread_counts) {
+        std::cout << "Running Unpadded OpenMP BFS (" << t << " threads)... " << std::flush;
+        std::vector<double> teps_list;
+        std::vector<double> times_ms;
+
+        for (uint32_t r : roots) {
+            auto res = bfs::run_unpadded_bfs(g, r, t, track_parents);
+            teps_list.push_back(res.teps);
+            times_ms.push_back(res.elapsed_seconds * 1000.0);
+        }
+
+        std::sort(times_ms.begin(), times_ms.end());
+        double h_teps = bfs::compute_harmonic_mean_teps(teps_list);
+        double median_ms = times_ms[times_ms.size() / 2];
+        double speedup = (serial_teps > 0.0) ? (h_teps / serial_teps) : 0.0;
+        double efficiency = (t > 0) ? (speedup / t) * 100.0 : 0.0;
+
+        benchmark_results.push_back({
+            "Unpadded OpenMP BFS",
+            t,
+            h_teps,
+            h_teps / 1e6,
+            median_ms,
+            speedup,
+            efficiency
+        });
+        std::cout << "Done (Harmonic TEPS: " << std::scientific << std::setprecision(2) 
+                  << h_teps << ", Speedup: " << std::fixed << std::setprecision(2) << speedup << "x)\n";
+    }
+
+    // 6. Run Padded OpenMP BFS (Phase 5)
+    for (int t : thread_counts) {
+        std::cout << "Running Padded OpenMP BFS (" << t << " threads)... " << std::flush;
+        std::vector<double> teps_list;
+        std::vector<double> times_ms;
+
+        for (uint32_t r : roots) {
+            auto res = bfs::run_padded_bfs(g, r, t, track_parents);
+            teps_list.push_back(res.teps);
+            times_ms.push_back(res.elapsed_seconds * 1000.0);
+        }
+
+        std::sort(times_ms.begin(), times_ms.end());
+        double h_teps = bfs::compute_harmonic_mean_teps(teps_list);
+        double median_ms = times_ms[times_ms.size() / 2];
+        double speedup = (serial_teps > 0.0) ? (h_teps / serial_teps) : 0.0;
+        double efficiency = (t > 0) ? (speedup / t) * 100.0 : 0.0;
+
+        benchmark_results.push_back({
+            "Padded OpenMP BFS",
+            t,
+            h_teps,
+            h_teps / 1e6,
+            median_ms,
+            speedup,
+            efficiency
+        });
+        std::cout << "Done (Harmonic TEPS: " << std::scientific << std::setprecision(2) 
+                  << h_teps << ", Speedup: " << std::fixed << std::setprecision(2) << speedup << "x)\n";
+    }
+
     // Print summary table
     print_benchmark_table(benchmark_results);
 

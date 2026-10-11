@@ -56,8 +56,10 @@ def main():
 
     color_map = {
         "Naive OpenMP BFS": ("#d62728", "o"),
+        "Unpadded OpenMP BFS": ("#e66101", "v"),
         "Contention-Reduced BFS": ("#1f77b4", "s"),
         "Visited Bitmap BFS": ("#9467bd", "^"),
+        "Padded OpenMP BFS": ("#2b83ba", "D"),
     }
     default_colors = ["#ff7f0e", "#8c564b", "#e377c2", "#7f7f7f"]
 

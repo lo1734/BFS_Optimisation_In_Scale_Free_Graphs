@@ -35,6 +35,12 @@ void test_small_graph() {
 
         auto bmp_res = bfs::run_bitmap_bfs(g, 0, t, true);
         assert(bfs::validate_bfs(g, serial_res, bmp_res));
+
+        auto pad_res = bfs::run_padded_bfs(g, 0, t, true);
+        assert(bfs::validate_bfs(g, serial_res, pad_res));
+
+        auto unpad_res = bfs::run_unpadded_bfs(g, 0, t, true);
+        assert(bfs::validate_bfs(g, serial_res, unpad_res));
     }
 
     std::cout << "PASSED\n";
@@ -68,6 +74,12 @@ void test_disconnected_components() {
 
         auto bmp_res = bfs::run_bitmap_bfs(g, 0, t, false);
         assert(bfs::validate_bfs(g, serial_res, bmp_res));
+
+        auto pad_res = bfs::run_padded_bfs(g, 0, t, false);
+        assert(bfs::validate_bfs(g, serial_res, pad_res));
+
+        auto unpad_res = bfs::run_unpadded_bfs(g, 0, t, false);
+        assert(bfs::validate_bfs(g, serial_res, unpad_res));
     }
 
     std::cout << "PASSED\n";
@@ -97,6 +109,12 @@ void test_rmat_multi_roots() {
 
             auto bmp_res = bfs::run_bitmap_bfs(g, root, t, true);
             assert(bfs::validate_bfs(g, serial_res, bmp_res));
+
+            auto pad_res = bfs::run_padded_bfs(g, root, t, true);
+            assert(bfs::validate_bfs(g, serial_res, pad_res));
+
+            auto unpad_res = bfs::run_unpadded_bfs(g, root, t, true);
+            assert(bfs::validate_bfs(g, serial_res, unpad_res));
         }
     }
 
@@ -119,6 +137,12 @@ void test_barabasi_albert_validation() {
 
             auto bmp_res = bfs::run_bitmap_bfs(g, root, t, false);
             assert(bfs::validate_bfs(g, serial_res, bmp_res));
+
+            auto pad_res = bfs::run_padded_bfs(g, root, t, false);
+            assert(bfs::validate_bfs(g, serial_res, pad_res));
+
+            auto unpad_res = bfs::run_unpadded_bfs(g, root, t, false);
+            assert(bfs::validate_bfs(g, serial_res, unpad_res));
         }
     }
 
