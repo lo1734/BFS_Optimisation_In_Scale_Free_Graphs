@@ -12,6 +12,8 @@ include_directories(include)
 add_library(graph_lib STATIC
     src/graph/graph.cpp
     src/graph/rmat_generator.cpp
+    src/bfs/serial_bfs.cpp
+    src/bfs/naive_bfs.cpp
 )
 target_link_libraries(graph_lib PUBLIC OpenMP::OpenMP_CXX)
 
@@ -26,3 +28,10 @@ target_link_libraries(inspect_graph PRIVATE graph_lib OpenMP::OpenMP_CXX)
 
 add_executable(test_graph tests/test_graph.cpp)
 target_link_libraries(test_graph PRIVATE graph_lib OpenMP::OpenMP_CXX)
+
+add_executable(test_bfs tests/test_bfs.cpp)
+target_link_libraries(test_bfs PRIVATE graph_lib OpenMP::OpenMP_CXX)
+
+add_executable(benchmark_bfs src/tools/benchmark_bfs.cpp)
+target_link_libraries(benchmark_bfs PRIVATE graph_lib OpenMP::OpenMP_CXX)
+

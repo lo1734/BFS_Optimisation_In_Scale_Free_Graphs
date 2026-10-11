@@ -29,22 +29,33 @@ BIN_DIR = bin
 COMMON_SRCS = $(SRC_DIR)/graph/graph.cpp $(SRC_DIR)/graph/rmat_generator.cpp
 COMMON_OBJS = $(OBJ_DIR)/graph/graph.o $(OBJ_DIR)/graph/rmat_generator.o
 
+BFS_SRCS = $(SRC_DIR)/bfs/serial_bfs.cpp $(SRC_DIR)/bfs/naive_bfs.cpp
+BFS_OBJS = $(COMMON_OBJS) $(OBJ_DIR)/bfs/serial_bfs.o $(OBJ_DIR)/bfs/naive_bfs.o
+
 TARGETS = $(BIN_DIR)/atomic_microbench \
           $(BIN_DIR)/generate_graph \
           $(BIN_DIR)/inspect_graph \
-          $(BIN_DIR)/test_graph
+          $(BIN_DIR)/test_graph \
+          $(BIN_DIR)/test_bfs \
+          $(BIN_DIR)/benchmark_bfs
 
-.PHONY: all clean test microbench tools
+.PHONY: all clean test microbench tools benchmark
 
 all: directories $(TARGETS)
 
 directories:
-	@mkdir -p $(OBJ_DIR)/benchmarks $(OBJ_DIR)/graph $(OBJ_DIR)/tools $(OBJ_DIR)/tests $(BIN_DIR) data
+	@mkdir -p $(OBJ_DIR)/benchmarks $(OBJ_DIR)/graph $(OBJ_DIR)/bfs $(OBJ_DIR)/tools $(OBJ_DIR)/tests $(BIN_DIR) data
 
 $(OBJ_DIR)/graph/graph.o: $(SRC_DIR)/graph/graph.cpp $(INC_DIR)/graph.hpp $(INC_DIR)/utils.hpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/graph/rmat_generator.o: $(SRC_DIR)/graph/rmat_generator.cpp $(INC_DIR)/rmat_generator.hpp $(INC_DIR)/graph.hpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/bfs/serial_bfs.o: $(SRC_DIR)/bfs/serial_bfs.cpp $(INC_DIR)/bfs.hpp $(INC_DIR)/graph.hpp $(INC_DIR)/utils.hpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/bfs/naive_bfs.o: $(SRC_DIR)/bfs/naive_bfs.cpp $(INC_DIR)/bfs.hpp $(INC_DIR)/graph.hpp $(INC_DIR)/utils.hpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(BIN_DIR)/atomic_microbench: $(SRC_DIR)/benchmarks/atomic_microbench.cpp $(INC_DIR)/atomic_bench.hpp $(INC_DIR)/utils.hpp
@@ -59,13 +70,23 @@ $(BIN_DIR)/inspect_graph: $(SRC_DIR)/tools/inspect_graph.cpp $(COMMON_OBJS)
 $(BIN_DIR)/test_graph: tests/test_graph.cpp $(COMMON_OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
+$(BIN_DIR)/test_bfs: tests/test_bfs.cpp $(BFS_OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+
+$(BIN_DIR)/benchmark_bfs: $(SRC_DIR)/tools/benchmark_bfs.cpp $(BFS_OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+
 microbench: $(BIN_DIR)/atomic_microbench
 	./$(BIN_DIR)/atomic_microbench
 
 tools: $(BIN_DIR)/generate_graph $(BIN_DIR)/inspect_graph
 
-test: $(BIN_DIR)/test_graph
+test: $(BIN_DIR)/test_graph $(BIN_DIR)/test_bfs
 	./$(BIN_DIR)/test_graph
+	./$(BIN_DIR)/test_bfs
+
+benchmark: $(BIN_DIR)/benchmark_bfs
 
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
+
